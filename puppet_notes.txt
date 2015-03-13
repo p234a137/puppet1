@@ -1,0 +1,117 @@
+[root@learning /etc/puppetlabs/puppet/environments/production/modules]#
+
+
+puppet resource user root
+user { 'root':
+  ensure           => 'present',
+  comment          => 'root',
+  gid              => '0',
+  home             => '/root',
+  password         => '$1$jrm5tnjw$h8JJ9mCZLmJvIxvDLjw1M/',
+  password_max_age => '99999',
+  password_min_age => '0',
+  shell            => '/bin/bash',
+  uid              => '0',
+}
+
+type {'title':
+attribute => 'value',
+}
+
+
+puppet describe user | less
+
+
+puppet apply -e "user { 'galatea': ensure => 'present', }"
+
+# edit a resource
+puppet resource -e user galatea
+
+
+# classes
+  1. define  (manifest/)
+  2. declar  (test/)
+
+A class is a collection of related resources and other classes which, once defined, can
+be declared as a single unit. Puppet classes are also singleton, which means that unlike
+classes in object oriented programming, a Puppet class can only be declared a single
+time on a given node.
+
+
+puppet parser validate cowsayings/manifests/cowsay.pp
+
+puppet apply --noop cowsayings/tests/cowsay.pp # dry run with -noop
+
+puppet apply -e "package { 'fortune-mod': ensure => 'absent', } \
+package {'cowsay': ensure => 'absent', }"
+
+####
+In short, a Puppet module is a self-contained bundle of all the Puppet code and other
+data needed to manage some aspect of your configuration. In this quest, we'll go over
+the purpose and structure of Puppet modules, before showing you how to create your
+own.
+
+Modules allow you to organize your Puppet code into units that are testable, reusable,
+and portable, in short, modular. This means that instead of writing Puppet code from
+scratch for every configuration you need, you can mix and match solutions from a
+few well-written modules. And because these modules are separate and self-contained,
+they're much easier to test, maintain, and share than a collection of one-off solutions.
+
+
+# path modules
+puppet agent --configprint modulepath
+
+# check status of ntp package, etc
+puppet resource package ntp
+package { 'ntp':
+  ensure => '4.2.6p5-2.el6.centos',
+}
+
+puppet resource file /ntp.conf
+file { '/ntp.conf':
+  ensure => 'absent',
+}
+
+service { 'ntpd':
+  ensure => 'stopped',
+  enable => 'false',
+}
+
+
+#
+puppet module install puppetlabs-ntp
+
+
+page 49/51
+
+
+To get a full list of facts available to facter, enter the command:
+facter -p | less
+
+
+
+# Types and Providers
+
+A type defines the interface for a resource: the set of properties you can use to define a
+desired state for the resource, and the parameters that don't directly map to things on
+the system, but tell Puppet how to manage the resource. Both properties and parameters
+appear in the resource declaration syntax as attribute value pairs.
+
+A provider is what does the heavy lifting to bring the system into line with the state
+defined by a resource declaration. Providers are implemented for a wide variety of
+supported operating systems. They are a key component of the Resource Abstraction
+Layer (RAL), translating the universal interface defined by the type into system-specific
+implementations
+
+
+FACTER_operatingsystem=Debian puppet apply --noop accounts/tests/init.pp
+
+
+Relationship Metaparameters
+One way of telling Puppet what order to use when managing resources is by including ordering metaparameters in your resource declarations.
+Metaparameters are attributes that can be set in any resource to tell Puppet how to manage that resource. In addition to resource ordering, metaparameters can help with things like logging, auditing, and scheduling. For now, however, we'll be concentrating only on resource ordering metaparameters.
+There are four metaparameter attributes that you can include in your resource declaration to order relationships among resources.
+• before causes a resource to be applied before a specified resource.
+• require causes a resource to be applied after a specified resource.
+• notify causes a resource to be applied before the specified resource, just as with before . Additionally, notify will generate a refresh event for the specified resource when the notifying resource changes.
+• subscribe causes a resource to be applied after the specified resource. The subscribing resource will be refreshed if the target resource changes.
